@@ -1,0 +1,92 @@
+import os
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
+class EmptyFileCleanerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Empty File Cleaner")
+        self.root.geometry("600x400")
+
+        # Folder selection
+        self.folder_label = tk.Label(root, text="No folder selected")
+        self.folder_label.pack(pady=10)
+
+        self.select_button = tk.Button(root, text="Select Folder", command=self.select_folder)
+        self.select_button.pack()
+
+        # Scan button
+        self.scan_button = tk.Button(root, text="Scan for Empty Files", command=self.scan_files, state="disabled")
+        self.scan_button.pack(pady=10)
+
+        # Results list
+        self.listbox = tk.Listbox(root, width=80, height=12)
+        self.listbox.pack(pady=10)
+
+        # Delete button
+        self.delete_button = tk.Button(root, text="Delete Selected Files", command=self.delete_files, state="disabled")
+        self.delete_button.pack()
+
+        # Status bar
+        self.status = tk.Label(root, text="", anchor="w")
+        self.status.pack(fill="x")
+
+        self.target_folder = None
+        self.empty_files = []
+
+    def select_folder(self):
+        folder = filedialog.askdirectory()
+        if folder:
+            self.target_folder = folder
+            self.folder_label.config(text=f"Selected: {folder}")
+            self.scan_button.config(state="normal")
+            self.listbox.delete(0, tk.END)
+            self.status.config(text="")
+
+    def scan_files(self):
+        if not self.target_folder:
+            return
+
+        self.listbox.delete(0, tk.END)
+        self.empty_files = []
+
+        for root, dirs, files in os.walk(self.target_folder):
+            for file in files:
+                full_path = os.path.join(root, file)
+                if os.path.getsize(full_path) == 0:
+                    self.empty_files.append(full_path)
+                    self.listbox.insert(tk.END, full_path)
+
+        if self.empty_files:
+            self.status.config(text=f"Found {len(self.empty_files)} empty files.")
+            self.delete_button.config(state="normal")
+        else:
+            self.status.config(text="No empty files found.")
+            self.delete_button.config(state="disabled")
+
+    def delete_files(self):
+        if not self.empty_files:
+            return
+
+        confirm = messagebox.askyesno("Confirm Delete", "Delete all listed empty files?")
+        if not confirm:
+            return
+
+        deleted_count = 0
+        for file in self.empty_files:
+            try:
+                os.remove(file)
+                deleted_count += 1
+            except:
+                pass
+
+        self.status.config(text=f"Deleted {deleted_count} files.")
+        self.listbox.delete(0, tk.END)
+        self.empty_files = []
+        self.delete_button.config(state="disabled")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = EmptyFileCleanerApp(root)
+    root.mainloop()  
